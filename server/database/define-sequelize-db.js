@@ -4,4 +4,5 @@ import { pgConnectionString } from "../config.js";
 
 export default new Sequelize(pgConnectionString, {
   ssl: true,
+  rejectUnauthorized: false,
 });
