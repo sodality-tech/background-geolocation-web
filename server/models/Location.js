@@ -162,14 +162,50 @@ export async function removeOld(org) {
 
   const organization = await CompanyModel.findOne({ where: { company_token: org } });
   const count = await LocationModel.count({ where: { company_id: organization.id } });
-  if (count > 10000 && organization.company_token.indexOf('transistor-') !== 0) {
+  const maxRecords = 1000000;
+  // Was originally 100k but that kept getting hit
+  // const maxRecords = 100000;
+
+  // 100k, we nuke non staff devices
+  if (count > 100000 && organization.company_token.indexOf('transistor-') !== 0) {
+    // select all IDs from devices where device_id doesn't contain one of Danie, Greg, Hari, Kyle, Assaf
+    const nonStaffDevices = await DeviceModel.findAll({
+      where: {
+        company_id: organization.id,
+        device_id: {
+          [Op.notLike]: '%Danie%',
+          [Op.notLike]: '%Greg%',
+          [Op.notLike]: '%Hari%',
+          [Op.notLike]: '%Kyle%',
+          [Op.notLike]: '%Assaf%',
+          [Op.notLike]: '%Amanda%',
+          [Op.notLike]: '%Nancy%',
+        }
+      }
+    });
+
+    const nonStaffDeviceIds = nonStaffDevices.map(device => device.id);
+
+    console.info('deleting non-staff locations:');
+    LocationModel.destroy({
+      where: {
+        company_id: organization.id,
+        device_id: {
+          [Op.in]: nonStaffDeviceIds,
+        }
+      },
+    });
+  }
+
+  // At maxRecords, we nuke all records before the last 100k records
+  if (count > maxRecords && organization.company_token.indexOf('transistor-') !== 0) {
     const entry = await LocationModel.findOne({
       where: { company_id: organization.id },
-      offset: 10000,
+      offset: maxRecords,
       order: [['recorded_at', 'DESC']],
     });
     const minDate = entry.recorded_at;
-    console.info('first allowed:', minDate);
+    console.info('deleting before first allowed:', minDate);
     LocationModel.destroy({
       where: {
         company_id: organization.id,
