@@ -176,15 +176,19 @@ export async function removeOld(org) {
       where: {
         company_id: organization.id,
         device_id: {
-          [Op.notLike]: '%Danie%',
-          [Op.notLike]: '%Greg%',
-          [Op.notLike]: '%Hari%',
-          [Op.notLike]: '%Kyle%',
-          [Op.notLike]: '%Assaf%',
-          [Op.notLike]: '%Amanda%',
-          [Op.notLike]: '%Nancy%',
-        }
-      }
+          [Op.notLike]: {
+            [Op.any]: [
+              "%Danie%",
+              "%Greg%",
+              "%Hari%",
+              "%Kyle%",
+              "%Assaf%",
+              "%Amanda%",
+              "%Nancy%",
+            ],
+          },
+        },
+      },
     });
 
     const nonStaffDeviceIds = nonStaffDevices.map(device => device.id);
